@@ -1,24 +1,33 @@
 package sk.wm.server1;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+import java.io.FileInputStream;
+import java.io.InputStream;
 
-import java.net.http.HttpResponse;
-import java.util.Optional;
-
-@Controller
+@RestController
 public class Server1Controller {
 
-    @Autowired
-    private Server1Service server1Service;
+    @Value("${file.path}")
+    private String filePath;
 
     @GetMapping("/")
-    public ResponseEntity<String> getServer1() {
-        String output = server1Service.getServer1Text();
-        return ResponseEntity
-                .ok()
-                .body(output);
+    public ResponseEntity<StreamingResponseBody> streamFile() {
+        StreamingResponseBody stream = out -> {
+            try (InputStream inputStream = new FileInputStream(filePath)) {
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    out.write(buffer, 0, bytesRead);
+                }
+            }
+        };
+        return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(stream);
     }
 }
